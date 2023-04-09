@@ -1,0 +1,3 @@
+id,property1,property2,property3,property4,property5.nestedProperty1,property5.nestedProperty2,property6.nestedProperty1,property6.nestedProperty2
+1,foo,42,True,bar;baz,qux,13,quux,17
+2,foo,42,True,bar;baz,qux,13,quux,17
