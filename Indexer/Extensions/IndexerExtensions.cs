@@ -43,6 +43,7 @@ namespace Indexer.Extensions
             return matches;
         }
 
+        
         public static void ExportToCsv<T>(this IIndexer<T> indexer, string filePath) where T : Base
         {
             var index = indexer.GetIndex();
