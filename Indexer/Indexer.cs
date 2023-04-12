@@ -175,7 +175,7 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
             nestedMatches.Add(obj);
         }
     }
-    
+
     private void IndexArray(JsonElement jsonElement, string path, T obj)
     {
         string itemPath = string.IsNullOrEmpty(path) ? "" : path;
@@ -211,40 +211,43 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
 
     private HashSet<T> GetEntities(IEnumerable<SearchFilter> filters)
     {
-        // Implication is that if we have one nested filter, we have all nested filters
-        var nestedFilters = filters.Where(f => !string.IsNullOrEmpty(f.NestedPrefix));
-        if (nestedFilters.Any())
-        {
-            return GetEntitiesWithNestedFilters(nestedFilters.ToList(), nestedFilters.First().NestedPrefix);
-        }
-        
-        if (!filters.Any())
+        if (filters == null || filters.Count() == 0)
         {
             return GetHashSet();
         }
 
+        var nestedFilters = filters.Any(f => !string.IsNullOrEmpty(f.NestedPrefix)) ? filters : new List<SearchFilter>();
+        if (nestedFilters.Any())
+        {
+            return GetEntitiesWithNestedFilters(nestedFilters.ToList(), nestedFilters.Where(f => !string.IsNullOrEmpty(f.NestedPrefix)).First().NestedPrefix);
+        }
+
         // Calculate the number of matching entities for each non-nested filter without retrieving the entities
-        var filterCounts = filters.ToDictionary(filter => filter, GetEntityCountForFilter);
+        var filterCounts = filters.ToDictionary(filter => filter, filter => GetEntityCountForFilter(filter));
         if (filterCounts.Any(c => c.Value == 0))
         {
             return GetHashSet();
         }
-
-        // Optimize intersections by sorting filters by the smallest number of matching entities
+        // Sort filters by the number of matching entities to optimize intersections
         var sortedFilters = filters.OrderBy(filter => filterCounts[filter]).ToList();
 
-        var entities = GetEntitiesFromFilter(sortedFilters.First());
-        foreach (var filter in sortedFilters.Skip(1))
+        HashSet<T> entities = null;
+        foreach (var filter in sortedFilters)
         {
-            var currentEntities = GetEntitiesFromFilter(filter);
-            entities.IntersectWith(currentEntities);
+            HashSet<T> currentEntities = GetEntitiesFromFilter(filter);
+            if (currentEntities.Count == 0)
+            {
+                return currentEntities;
+            }
+
+            entities = ProcessEntities(entities, currentEntities);
             if (entities.Count == 0)
             {
-                break;
+                return entities;
             }
         }
 
-        return entities;
+        return entities ?? GetHashSet();
     }
 
     private HashSet<T> GetEntitiesWithNestedFilters(List<SearchFilter> nestedFilters, string nestedKey)
@@ -254,97 +257,44 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
             return GetHashSet();
         }
 
-        var entities = new HashSet<T>(new IdEqualityComparer<T>());
-        foreach (var (nestedObject, matches) in nestedIndex)
+        var entities = GetHashSet();
+        foreach (var kvp in nestedIndex)
         {
-            if (nestedFilters.All(filter => nestedObject.TryGetValue(filter.Field, out var nestedValue) && filter.Values.Contains(nestedValue)))
+            var nestedObject = kvp.Key;
+            var matches = kvp.Value;
+
+            var allFiltersMatch = true;
+            foreach (var filter in nestedFilters)
+            {
+                if (!nestedObject.TryGetValue(filter.Field, out var nestedValue) || !filter.Values.Contains(nestedValue))
+                {
+                    allFiltersMatch = false;
+                    break;
+                }
+            }
+
+            if (allFiltersMatch)
             {
                 entities.UnionWith(matches);
             }
         }
-        
+
         return entities;
     }
 
-    //private HashSet<T> GetEntities(IEnumerable<SearchFilter> filters)
-    //{
-    //    if (filters == null || filters.Count() == 0)
-    //    {
-    //        return GetHashSet();
-    //    }
-
-    //    var nestedFilters = filters.Any(f => !string.IsNullOrEmpty(f.NestedPrefix)) ? filters : new List<SearchFilter>();
-
-    //    if (nestedFilters.Any())
-    //    {
-    //        return GetEntitiesWithNestedFilters(nestedFilters.ToList(), nestedFilters.Where(f => !string.IsNullOrEmpty(f.NestedPrefix)).First().NestedPrefix);
-    //    }
-
-    //    // Calculate the number of matching entities for each non-nested filter without retrieving the entities
-    //    var filterCounts = filters.ToDictionary(filter => filter, filter => GetEntityCountForFilter(filter));
-    //    if (filterCounts.Any(c => c.Value == 0))
-    //    {
-    //        return GetHashSet();
-    //    }
-    //    // Sort filters by the number of matching entities to optimize intersections
-    //    var sortedFilters = filters.OrderBy(filter => filterCounts[filter]).ToList();
-
-    //    HashSet<T> entities = null;
-    //    foreach (var filter in sortedFilters)
-    //    {
-    //        HashSet<T> currentEntities = GetEntitiesFromFilter(filter);
-    //        if (currentEntities.Count == 0)
-    //        {
-    //            return currentEntities;
-    //        }
-
-    //        entities = ProcessEntities(entities, currentEntities);
-    //        if (entities != null && entities.Count == 0)
-    //        {
-    //            break;
-    //        }
-    //    }
-
-    //    return entities ?? GetHashSet();
-    //}
-
-    //private HashSet<T> GetEntitiesWithNestedFilters(List<SearchFilter> nestedFilters, string nestedKey)
-    //{
-    //    HashSet<T> entities = null;
-    //    if (_nestedObjects.TryGetValue(nestedKey, out var nestedIndex))
-    //    {
-    //        foreach (var nestedObject in nestedIndex.Keys)
-    //        {
-    //            var matchCount = 0;
-    //            foreach (var filter in nestedFilters)
-    //            {
-    //                if (nestedObject.TryGetValue(filter.Field, out var nestedValue) &&
-    //                    filter.Values.Contains(nestedValue))
-    //                {
-    //                    matchCount++;
-    //                }
-    //                else
-    //                {
-    //                    break;
-    //                }
-    //            }
-
-    //            if (matchCount == nestedFilters.Count)
-    //            {
-    //                if (entities == null)
-    //                {
-    //                    entities = nestedIndex[nestedObject];
-    //                }
-    //                else
-    //                {
-    //                    entities.UnionWith(nestedIndex[nestedObject]);
-    //                }
-    //            }
-    //        }
-    //    }
-
-    //    return entities ?? GetHashSet();
-    //}
+    private HashSet<T> ProcessEntities(HashSet<T> entities, HashSet<T> currentEntities)
+    {
+        if (entities == null)
+        {
+            entities = currentEntities;
+        }
+        else
+        {
+            entities.IntersectWith(currentEntities);
+            ReturnHashSet(currentEntities);
+        }
+        return entities;
+    }
 
     private int GetEntityCountForFilter(SearchFilter filter)
     {
@@ -358,6 +308,7 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
         }
         return count;
     }
+
     private HashSet<T> GetEntitiesFromFilter(SearchFilter filter)
     {
         HashSet<T> currentEntities = GetHashSet();
@@ -371,19 +322,6 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
 
         return currentEntities;
     }
-    //private HashSet<T> ProcessEntities(HashSet<T> entities, HashSet<T> currentEntities)
-    //{
-    //    if (entities == null)
-    //    {
-    //        entities = currentEntities;
-    //    }
-    //    else
-    //    {
-    //        entities.IntersectWith(currentEntities);
-    //        ReturnHashSet(currentEntities);
-    //    }
-    //    return entities;
-    //}
 
     private readonly ConcurrentStack<HashSet<T>> _hashSetPool = new ConcurrentStack<HashSet<T>>();
     private HashSet<T> GetHashSet()
