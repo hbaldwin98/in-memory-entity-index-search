@@ -4,6 +4,7 @@ using NUnit.Framework;
 
 namespace Indexer.Tests.IndexerTests.IndexerTests;
 
+[TestFixture]
 public class SearchTests : BaseTest
 {
     public SearchTests() : base()
