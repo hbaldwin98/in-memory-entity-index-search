@@ -8,13 +8,15 @@ COPY ./Indexer.Tests/Indexer.Tests.csproj ./Indexer.Tests/Indexer.Tests.csproj
 COPY ./Indexer.sln ./Indexer.sln
 RUN dotnet restore Indexer.sln
 
+run dotnet build Indexer.sln -c Release
+
 # Copy everything else
 COPY . .
 
 FROM build AS test
 WORKDIR /app/Indexer.Tests
-RUN dotnet test Indexer.Tests.csproj -c Release  -v n
-ENTRYPOINT ["dotnet","test", "Indexer.Tests.csproj", "-c", "Release", "-v", "n"]
+RUN dotnet test ./Indexer.Tests.csproj -c Release --no-restore --no-build -v n
+ENTRYPOINT ["dotnet", "test", "-c", "Release", "--no-restore", "--no-build", "-v", "n"]
 
 # Publish stage
 FROM build AS publish

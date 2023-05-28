@@ -1,9 +1,10 @@
-﻿using Indexer;
-using Indexer.Models;
+﻿using Indexer.Models;
 
-class Program
+namespace Indexer;
+
+public class Program
 {
-    static void Main(string[] args)
+    public static void Main(string[] args)
     {
         var indexService = new Indexer<BaseEntity>();
 
