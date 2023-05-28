@@ -1,10 +1,14 @@
 ﻿using Indexer.Extensions;
 using Indexer.Tests.Models;
+using Xunit.Abstractions;
 
 namespace Indexer.Tests.IndexerTests;
 
-public class IndexTests
+public class IndexTests : BaseTest
 {
+    public IndexTests(ITestOutputHelper output) : base(output)
+    {
+    }
 
     [Fact]
     public void ExportToCsv_WritesExpectedCsvFile()

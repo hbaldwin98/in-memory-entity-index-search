@@ -1,10 +1,14 @@
 using Indexer.Models;
 using Indexer.Tests.Models;
+using Xunit.Abstractions;
 
 namespace Indexer.Tests.IndexerTests.IndexerTests;
 
-public class SearchTests
+public class SearchTests : BaseTest
 {
+    public SearchTests(ITestOutputHelper output) : base(output)
+    {
+    }
 
     [Fact]
     public void IndexingAndSearchingSingleObject()
