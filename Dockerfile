@@ -13,8 +13,8 @@ COPY . .
 
 FROM build AS test
 WORKDIR /app/Indexer.Tests
-RUN dotnet test Indexer.Tests.csproj -c Release --no-build --no-restore -v n
-ENTRYPOINT ["dotnet","test", "Indexer.Tests.csproj", "-c", "Release", "--no-build", "--no-restore", "-v", "n"]
+RUN dotnet test Indexer.Tests.csproj -c Release  -v n
+ENTRYPOINT ["dotnet","test", "Indexer.Tests.csproj", "-c", "Release", "-v", "n"]
 
 # Publish stage
 FROM build AS publish
