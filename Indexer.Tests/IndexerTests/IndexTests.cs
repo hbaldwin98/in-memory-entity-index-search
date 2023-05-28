@@ -1,16 +1,16 @@
 ﻿using Indexer.Extensions;
 using Indexer.Tests.Models;
-using Xunit.Abstractions;
+using NUnit.Framework;
 
 namespace Indexer.Tests.IndexerTests;
 
 public class IndexTests : BaseTest
 {
-    public IndexTests(ITestOutputHelper output) : base(output)
+    public IndexTests() : base()
     {
     }
 
-    [Fact]
+    [Theory]
     public void ExportToCsv_WritesExpectedCsvFile()
     {
         // Arrange
@@ -43,14 +43,13 @@ public class IndexTests : BaseTest
 
         // Assert
         string[] lines = File.ReadAllLines("test.csv");
-        Assert.Equal(3, lines.Length); // Header row + data row
-        Assert.Equal("id,property1,property2,property3,property4,property5.nestedProperty1,property5.nestedProperty2,property6.nestedProperty1,property6.nestedProperty2", lines[0]);
-        Assert.Equal("1,foo,42,True,bar;baz,qux,13,quux,17", lines[1]);
-        Assert.Equal("2,foo,42,True,bar;baz,qux,13,quux,17", lines[2]);
-
+        Assert.AreEqual(3, lines.Length); // Header row + data row
+        Assert.AreEqual("id,property1,property2,property3,property4,property5.nestedProperty1,property5.nestedProperty2,property6.nestedProperty1,property6.nestedProperty2", lines[0]);
+        Assert.AreEqual("1,foo,42,True,bar;baz,qux,13,quux,17", lines[1]);
+        Assert.AreEqual("2,foo,42,True,bar;baz,qux,13,quux,17", lines[2]);
     }
 
-    [Fact]
+    [Theory]
     public void Index_WithSingleEntity_ShouldIndexCorrectly()
     {
         // Arrange
@@ -70,18 +69,18 @@ public class IndexTests : BaseTest
         indexer.Index(entity);
 
         // Assert
-        Assert.Equal(1, indexer.GetMatches("foo", "property1").Count());
-        Assert.Equal(1, indexer.GetMatches("42", "property2").Count());
-        Assert.Equal(1, indexer.GetMatches("True", "property3").Count());
-        Assert.Equal(1, indexer.GetMatches("bar", "property4").Count());
-        Assert.Equal(1, indexer.GetMatches("baz", "property4").Count());
-        Assert.Equal(1, indexer.GetMatches("qux", "property5.nestedProperty1").Count());
-        Assert.Equal(1, indexer.GetMatches("13", "property5.nestedProperty2").Count());
-        Assert.Equal(1, indexer.GetMatches("quux", "property6.nestedProperty1").Count());
-        Assert.Equal(1, indexer.GetMatches("17", "property6.nestedProperty2").Count());
+        Assert.AreEqual(1, indexer.GetMatches("foo", "property1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("42", "property2").Count());
+        Assert.AreEqual(1, indexer.GetMatches("True", "property3").Count());
+        Assert.AreEqual(1, indexer.GetMatches("bar", "property4").Count());
+        Assert.AreEqual(1, indexer.GetMatches("baz", "property4").Count());
+        Assert.AreEqual(1, indexer.GetMatches("qux", "property5.nestedProperty1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("13", "property5.nestedProperty2").Count());
+        Assert.AreEqual(1, indexer.GetMatches("quux", "property6.nestedProperty1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("17", "property6.nestedProperty2").Count());
     }
 
-    [Fact]
+    [Theory]
     public void Index_WithMultipleEntities_ShouldIndexCorrectly()
     {
         // Arrange
@@ -97,12 +96,12 @@ public class IndexTests : BaseTest
         indexer.Index(entities);
 
         // Assert
-        Assert.Equal(1, indexer.GetMatches("foo", "property1").Count());
-        Assert.Equal(1, indexer.GetMatches("bar", "property1").Count());
-        Assert.Equal(1, indexer.GetMatches("baz", "property1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("foo", "property1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("bar", "property1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("baz", "property1").Count());
     }
 
-    [Fact]
+    [Theory]
     public void Index_WithNestedObjects_ShouldIndexCorrectly()
     {
         // Arrange
@@ -118,13 +117,13 @@ public class IndexTests : BaseTest
         indexer.Index(entity);
 
         // Assert
-        Assert.Equal(1, indexer.GetMatches("foo", "property5.nestedProperty1").Count());
-        Assert.Equal(1, indexer.GetMatches("42", "property5.nestedProperty2").Count());
-        Assert.Equal(1, indexer.GetMatches("bar", "property6.nestedProperty1").Count());
-        Assert.Equal(1, indexer.GetMatches("13", "property6.nestedProperty2").Count());
+        Assert.AreEqual(1, indexer.GetMatches("foo", "property5.nestedProperty1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("42", "property5.nestedProperty2").Count());
+        Assert.AreEqual(1, indexer.GetMatches("bar", "property6.nestedProperty1").Count());
+        Assert.AreEqual(1, indexer.GetMatches("13", "property6.nestedProperty2").Count());
     }
-
-    [Fact]
+    
+    [Theory]
     public void GetMatches_WithExistingValue_ShouldReturnMatchingObjects()
     {
         // Arrange
@@ -137,12 +136,12 @@ public class IndexTests : BaseTest
         var matches = indexer.GetMatches("42", "property2");
 
         // Assert
-        Assert.Equal(2, matches.Count());
-        Assert.Contains(entity1, matches);
-        Assert.Contains(entity2, matches);
+        Assert.AreEqual(2, matches.Count());
+        Assert.Contains(entity1, matches.ToList());
+        Assert.Contains(entity2, matches.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void GetMatches_WithNonExistingValue_ShouldReturnEmptyEnumerable()
     {
         // Arrange
@@ -154,10 +153,10 @@ public class IndexTests : BaseTest
         var matches = indexer.GetMatches("bar", "property1");
 
         // Assert
-        Assert.Empty(matches);
+        Assert.IsEmpty(matches);
     }
 
-    [Fact]
+    [Theory]
     public void GetMatches_WithNestedObjects_ShouldReturnMatchingObjects()
     {
         // Arrange
@@ -181,15 +180,15 @@ public class IndexTests : BaseTest
         var matches2 = indexer.GetMatches("13", "property6.nestedProperty2");
 
         // Assert
-        Assert.Equal(1, matches1.Count());
-        Assert.Contains(entity1, matches1);
+        Assert.AreEqual(1, matches1.Count());
+        Assert.Contains(entity1, matches1.ToList());
 
-        Assert.Equal(2, matches2.Count());
-        Assert.Contains(entity1, matches2);
-        Assert.Contains(entity2, matches2);
+        Assert.AreEqual(2, matches2.Count());
+        Assert.Contains(entity1, matches2.ToList());
+        Assert.Contains(entity2, matches2.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void GetMatches_WithInvalidPath_ShouldReturnEmptyEnumerable()
     {
         // Arrange
@@ -201,10 +200,10 @@ public class IndexTests : BaseTest
         var matches = indexer.GetMatches("foo", "invalid.path");
 
         // Assert
-        Assert.Empty(matches);
+        Assert.IsEmpty(matches);
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_CanDispose()
     {
         // Arrange

@@ -1,16 +1,16 @@
 using Indexer.Models;
 using Indexer.Tests.Models;
-using Xunit.Abstractions;
+using NUnit.Framework;
 
 namespace Indexer.Tests.IndexerTests.IndexerTests;
 
 public class SearchTests : BaseTest
 {
-    public SearchTests(ITestOutputHelper output) : base(output)
+    public SearchTests() : base()
     {
     }
 
-    [Fact]
+    [Theory]
     public void IndexingAndSearchingSingleObject()
     {
         var indexer = new Indexer<TestEntity>();
@@ -36,11 +36,11 @@ public class SearchTests : BaseTest
 
         var result = indexer.Search(new List<ComplexSearch> { complexSearch });
 
-        Assert.Single(result);
+        Assert.AreEqual(1, result.Count());
         Assert.Contains(testObj, result.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void IndexingAndSearchingMultipleObjects()
     {
         var indexer = new Indexer<TestEntity>();
@@ -78,11 +78,11 @@ public class SearchTests : BaseTest
 
         var result = indexer.Search(new List<ComplexSearch> { complexSearch });
 
-        Assert.Single(result);
+        Assert.AreEqual(1, result.Count());
         Assert.Contains(testObj1, result.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void SearchWithEmptyFiltersShouldReturnEmpty()
     {
         var indexer = new Indexer<TestEntity>();
@@ -105,10 +105,10 @@ public class SearchTests : BaseTest
 
         var result = indexer.Search(new List<ComplexSearch> { complexSearch });
 
-        Assert.Empty(result);
+        Assert.Zero(result.Count());
     }
 
-    [Fact]
+    [Theory]
     public void IndexingAndSearchingSingleComplexObject()
     {
         var indexer = new Indexer<TestEntity>();
@@ -142,11 +142,11 @@ public class SearchTests : BaseTest
 
         var result = indexer.Search(new List<ComplexSearch> { complexSearch });
 
-        Assert.Single(result);
-        Assert.Contains(testObj, result);
+        Assert.AreEqual(1, result.Count());
+        Assert.Contains(testObj, result.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_IndexesObject()
     {
         // Arrange
@@ -166,11 +166,11 @@ public class SearchTests : BaseTest
 
         // Assert
         var matches = indexer.Search(new List<ComplexSearch> { new ComplexSearch { OneOf = new List<SearchFilter> { new SearchFilter { Field = "property1", Values = new List<string> { "Test" } } } } });
-        Assert.Single(matches);
-        Assert.Equal(testObject, matches.First());
+        Assert.AreEqual(1, matches.Count());
+        Assert.AreEqual(testObject, matches.First());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_IndexesNestedObject()
     {
         // Arrange
@@ -186,11 +186,11 @@ public class SearchTests : BaseTest
 
         // Assert
         var matches = indexer.Search(new List<ComplexSearch> { new ComplexSearch { OneOf = new List<SearchFilter> { new SearchFilter { Field = "property5.nestedProperty1", Values = new List<string> { "NestedTest" } } } } });
-        Assert.Single(matches);
-        Assert.Equal(testObject, matches.First());
+        Assert.AreEqual(1, matches.Count());
+        Assert.AreEqual(testObject, matches.First());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_IndexesNestedObjectList()
     {
         // Arrange
@@ -206,11 +206,11 @@ public class SearchTests : BaseTest
 
         // Assert
         var matches = indexer.Search(new List<ComplexSearch> { new ComplexSearch { OneOf = new List<SearchFilter> { new SearchFilter { Field = "property6.nestedProperty1", Values = new List<string> { "NestedTest1" } } } } });
-        Assert.Single(matches);
-        Assert.Equal(testObject, matches.First());
+        Assert.AreEqual(1, matches.Count());
+        Assert.AreEqual(testObject, matches.First());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_SearchesForMultipleValues()
     {
         // Arrange
@@ -223,12 +223,12 @@ public class SearchTests : BaseTest
         var matches = indexer.Search(new List<ComplexSearch> { new ComplexSearch { OneOf = new List<SearchFilter> { new SearchFilter { Field = "property1", Values = new List<string> { "Test1", "Test2" } } } } });
 
         // Assert
-        Assert.Equal(2, matches.Count());
-        Assert.Contains(testObject1, matches);
-        Assert.Contains(testObject2, matches);
+        Assert.AreEqual(2, matches.Count());
+        Assert.Contains(testObject1, matches.ToList());
+        Assert.Contains(testObject2, matches.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_NestedPrefix_TwoComplexOneEntity()
     {
         // Arrange
@@ -261,11 +261,11 @@ public class SearchTests : BaseTest
         });
 
         // Assert
-        Assert.Equal(1, matches.Count());
-        Assert.Contains(testObject2, matches);
+        Assert.AreEqual(1, matches.Count());
+        Assert.Contains(testObject2, matches.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_SearchesForMultipleFields()
     {
         // Arrange
@@ -282,11 +282,11 @@ public class SearchTests : BaseTest
         var matches = indexer.Search(new List<ComplexSearch> { new ComplexSearch { OneOf = new List<SearchFilter> { new SearchFilter { Field = "property1", Values = new List<string> { "Test" } }, new SearchFilter { Field = "property5.nestedProperty1", Values = new List<string> { "NestedTest" } } } } });
 
         // Assert
-        Assert.Single(matches);
-        Assert.Equal(testObject, matches.First());
+        Assert.AreEqual(1, matches.Count());
+        Assert.AreEqual(testObject, matches.First());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_SearchesForNotOneOf()
     {
         // Arrange
@@ -299,12 +299,12 @@ public class SearchTests : BaseTest
         var matches = indexer.Search(new List<ComplexSearch> { new ComplexSearch { OneOf = new List<SearchFilter> { new SearchFilter { Field = "property1", Values = new List<string> { "Test1" } } }, NotOneOf = new List<SearchFilter> { new SearchFilter { Field = "property1", Values = new List<string> { "Test2" } } } } });
 
         // Assert
-        Assert.Single(matches);
-        Assert.Contains(testObject1, matches);
-        Assert.DoesNotContain(testObject2, matches);
+        Assert.AreEqual(1, matches.Count());
+        Assert.Contains(testObject1, matches.ToList());
+        Assert.That(matches, Does.Not.Contain(testObject2));
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_SearchesForMultipleFieldsAndValues()
     {
         // Arrange
@@ -335,10 +335,11 @@ public class SearchTests : BaseTest
             });
 
         // Assert
-        Assert.Empty(matches);
+        // IS EMPTY
+        Assert.That(matches, Is.Empty);
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_SearchesWithComplexSearch()
     {
         // Arrange
@@ -382,11 +383,11 @@ public class SearchTests : BaseTest
             });
 
         // Assert
-        Assert.Single(matches);
-        Assert.Equal(testObject1, matches.First());
+        Assert.That(matches.Count(), Is.EqualTo(1));
+        Assert.AreEqual(testObject1, matches.First());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_SearchesForMultipleMatchesWithComplexSearch()
     {
         // Arrange
@@ -413,12 +414,12 @@ public class SearchTests : BaseTest
             });
 
         // Assert
-        Assert.Equal(2, matches.Count());
-        Assert.Contains(testObject1, matches);
-        Assert.Contains(testObject3, matches);
+        Assert.That(2, Is.EqualTo(matches.Count()));
+        Assert.Contains(testObject1, matches.ToList());
+        Assert.Contains(testObject3, matches.ToList());
     }
 
-    [Fact]
+    [Theory]
     public void Indexer_SearchesForMultipleComplexFiltersWithOR()
     {
         // Arrange
@@ -455,8 +456,8 @@ public class SearchTests : BaseTest
         var matches = indexer.Search(new List<ComplexSearch> { complexSearch1, complexSearch2 });
 
         // Assert
-        Assert.Equal(2, matches.Count());
-        Assert.Contains(testObject1, matches);
-        Assert.Contains(testObject2, matches);
+        Assert.AreEqual(2, matches.Count());
+        Assert.Contains(testObject1, matches.ToList());
+        Assert.Contains(testObject2, matches.ToList());
     }
 }
