@@ -1,69 +1,14 @@
 ﻿using Indexer.Models;
-using System.Buffers;
-using System.Collections.Concurrent;
+using Indexer.Serializer;
 using System.Text.Json;
 
 namespace Indexer;
 
-public class Nested : Dictionary<string, string>
-{
-
-}
-public interface IIndexer<T> : IDisposable where T : IBaseEntity
-{
-    void Index(T obj, string path = null);
-    void Index(List<T> entities, string path = null);
-    void Index(JsonElement jsonElement, string path, T obj);
-    IEnumerable<T> Search(List<ComplexSearch> complexSearches);
-    Dictionary<string, Dictionary<string, HashSet<T>>> GetIndex();
-}
-
-public interface IIndexSerializer<T> : IDisposable where T : IBaseEntity
-{
-    ReadOnlyMemory<byte> SerializeToMemory(T obj);
-    JsonDocument SerializeToDocument(T obj);
-}
-
-public class JsonDocumentSerializer<T> : IIndexSerializer<T>, IDisposable where T : IBaseEntity
-{
-    private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-    {
-        IncludeFields = true,
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-    private readonly ArrayBufferWriter<byte> _bufferWriter = new ArrayBufferWriter<byte>(4096);
-    private readonly Utf8JsonWriter _jsonWriter;
-
-    public JsonDocumentSerializer()
-    {
-        _jsonWriter = new Utf8JsonWriter(_bufferWriter);
-    }
-
-    public ReadOnlyMemory<byte> SerializeToMemory(T obj)
-    {
-        _bufferWriter.Clear();
-        _jsonWriter.Reset(_bufferWriter);
-
-        JsonSerializer.Serialize(_jsonWriter, obj, _jsonOptions);
-
-        return _bufferWriter.WrittenMemory;
-    }
-    public void Dispose()
-    {
-        _jsonWriter?.Dispose();
-    }
-
-    public JsonDocument SerializeToDocument(T obj)
-    {
-        return JsonDocument.Parse(SerializeToMemory(obj));
-    }
-}
-
 public class Indexer<T> : IIndexer<T> where T : IBaseEntity
 {
-    private readonly Dictionary<string, Dictionary<string, HashSet<T>>> _index = new Dictionary<string, Dictionary<string, HashSet<T>>>();
-    private readonly Dictionary<string, Dictionary<Nested, HashSet<T>>> _nestedObjects = new Dictionary<string, Dictionary<Nested, HashSet<T>>>();
+    private Node _index = new Node();
+    private Dictionary<T, int> _entityIndexMap = new Dictionary<T, int>();
+    private List<T> _entities = new List<T>();
     private readonly IIndexSerializer<T> _serializer;
 
     #region Constructors
@@ -97,31 +42,31 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
     }
     #endregion
     #region Indexing
-    public void Index(T obj, string path = null)
+    public void Index(T obj, Node node = null)
     {
         using (var document = _serializer.SerializeToDocument(obj))
         {
-            Index(document.RootElement, path, obj);
+            Index(document.RootElement, node, obj);
         }
     }
 
-    public void Index(List<T> entities, string path = null)
+    public void Index(List<T> entities, Node node = null)
     {
         foreach (var entity in entities)
         {
-            Index(entity, path);
+            Index(entity, node);
         }
     }
 
-    public void Index(JsonElement jsonElement, string path, T obj)
+    public void Index(JsonElement jsonElement, Node node, T obj)
     {
         switch (jsonElement.ValueKind)
         {
             case JsonValueKind.Object:
-                IndexObject(jsonElement, path, obj);
+                IndexObject(jsonElement, node, obj);
                 break;
             case JsonValueKind.Array:
-                IndexArray(jsonElement, path, obj);
+                IndexArray(jsonElement, node, obj);
                 break;
             case JsonValueKind.Null:
             case JsonValueKind.Undefined:
@@ -130,276 +75,187 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
             case JsonValueKind.Number:
             case JsonValueKind.False:
             case JsonValueKind.True:
-                string term = jsonElement.ToString();
-
-                if (!_index.TryGetValue(term, out var index))
+                if (!_entityIndexMap.TryGetValue(obj, out var existingIdx))
                 {
-                    index = new Dictionary<string, HashSet<T>>();
-                    _index[term] = index;
+                    _entities.Add(obj);
+
+                    node.AddMatch(jsonElement.ToString(), _entities.Count - 1);
+                    _entityIndexMap[obj] = _entities.Count - 1;
+                }
+                else
+                {
+                    node.AddMatch(jsonElement.ToString(), existingIdx);
                 }
 
-                if (!index.TryGetValue(path, out var matches))
-                {
-                    matches = new HashSet<T>(new IdEqualityComparer<T>());
-                    index[path] = matches;
-                }
-                matches.Add(obj);
                 break;
         }
     }
 
-    private void IndexObject(JsonElement jsonElement, string path, T obj)
+    private void IndexObject(JsonElement jsonElement, Node node, T obj)
     {
-        var nestedObject = new Nested();
         foreach (JsonProperty property in jsonElement.EnumerateObject())
         {
-            string propertyPath = string.IsNullOrEmpty(path) ? property.Name : $"{path}.{property.Name}";
-            nestedObject[propertyPath] = property.Value.ToString();
-            Index(property.Value, propertyPath, obj);
-        }
-
-        if (path != null)
-        {
-            if (!_nestedObjects.TryGetValue(path, out var nestedIndex))
-            {
-                nestedIndex = new Dictionary<Nested, HashSet<T>>(new NestedEqualityComparer());
-                _nestedObjects[path] = nestedIndex;
-            }
-
-            if (!nestedIndex.TryGetValue(nestedObject, out var nestedMatches))
-            {
-                nestedMatches = new HashSet<T>(new IdEqualityComparer<T>());
-                nestedIndex[nestedObject] = nestedMatches;
-            }
-
-            nestedMatches.Add(obj);
+            Node currentNode = GetNextNode(property.Name, node);
+            Index(property.Value, currentNode, obj);
         }
     }
 
-    private void IndexArray(JsonElement jsonElement, string path, T obj)
+    private Node GetNextNode(string propertyName, Node node)
     {
-        string itemPath = string.IsNullOrEmpty(path) ? "" : path;
-        foreach (JsonElement item in jsonElement.EnumerateArray())
+        if (node == null)
         {
-            Index(item, itemPath, obj);
-        }
-    }
-    #endregion
-    #region Searching
-    public IEnumerable<T> Search(List<ComplexSearch> complexSearches)
-    {
-        HashSet<T> matchingEntities = new HashSet<T>(new IdEqualityComparer<T>());
-
-        foreach (var complexSearch in complexSearches)
-        {
-            var oneOfMatches = GetEntities(complexSearch.OneOf ?? Enumerable.Empty<SearchFilter>());
-            var notOneOfMatches = GetEntities(complexSearch.NotOneOf ?? Enumerable.Empty<SearchFilter>());
-
-            if (notOneOfMatches.Count > 0)
+            var existingChild = _index.GetChild(propertyName);
+            if (existingChild != null)
             {
-                oneOfMatches.ExceptWith(notOneOfMatches);
+                return existingChild;
             }
-
-            matchingEntities.UnionWith(oneOfMatches);
-
-            ReturnHashSet(oneOfMatches);
-            ReturnHashSet(notOneOfMatches);
-        }
-
-        return matchingEntities;
-    }
-
-    private HashSet<T> GetEntities(IEnumerable<SearchFilter> filters)
-    {
-        if (filters == null || filters.Count() == 0)
-        {
-            return GetHashSet();
-        }
-
-        var nestedFilters = filters.Any(f => !string.IsNullOrEmpty(f.NestedPrefix)) ? filters : new List<SearchFilter>();
-        if (nestedFilters.Any())
-        {
-            return GetEntitiesWithNestedFilters(nestedFilters.ToList(), nestedFilters.Where(f => !string.IsNullOrEmpty(f.NestedPrefix)).First().NestedPrefix);
-        }
-
-        // Calculate the number of matching entities for each non-nested filter without retrieving the entities
-        var filterCounts = filters.ToDictionary(filter => filter, filter => GetEntityCountForFilter(filter));
-        if (filterCounts.Any(c => c.Value == 0))
-        {
-            return GetHashSet();
-        }
-        // Sort filters by the number of matching entities to optimize intersections
-        var sortedFilters = filters.OrderBy(filter => filterCounts[filter]).ToList();
-
-        HashSet<T> entities = null;
-        foreach (var filter in sortedFilters)
-        {
-            HashSet<T> currentEntities = GetEntitiesFromFilter(filter);
-            if (currentEntities.Count == 0)
+            else
             {
-                return currentEntities;
+                var newNode = new Node(propertyName);
+                _index.AddChild(newNode);
+
+                return newNode;
             }
-
-            entities = ProcessEntities(entities, currentEntities);
-            if (entities.Count == 0)
-            {
-                return entities;
-            }
-        }
-
-        return entities ?? GetHashSet();
-    }
-
-    private HashSet<T> GetEntitiesWithNestedFilters(List<SearchFilter> nestedFilters, string nestedKey)
-    {
-        if (!_nestedObjects.TryGetValue(nestedKey, out var nestedIndex))
-        {
-            return GetHashSet();
-        }
-
-        var entities = GetHashSet();
-        foreach (var kvp in nestedIndex)
-        {
-            var nestedObject = kvp.Key;
-            var matches = kvp.Value;
-
-            var allFiltersMatch = true;
-            foreach (var filter in nestedFilters)
-            {
-                if (!nestedObject.TryGetValue(filter.Field, out var nestedValue) || !filter.Values.Contains(nestedValue))
-                {
-                    allFiltersMatch = false;
-                    break;
-                }
-            }
-
-            if (allFiltersMatch)
-            {
-                entities.UnionWith(matches);
-            }
-        }
-
-        return entities;
-    }
-
-    private HashSet<T> ProcessEntities(HashSet<T> entities, HashSet<T> currentEntities)
-    {
-        if (entities == null)
-        {
-            entities = currentEntities;
         }
         else
         {
-            entities.IntersectWith(currentEntities);
-            ReturnHashSet(currentEntities);
-        }
-        return entities;
-    }
-
-    private int GetEntityCountForFilter(SearchFilter filter)
-    {
-        int count = 0;
-        foreach (var value in filter.Values)
-        {
-            if (_index.TryGetValue(value, out var pathIndex) && pathIndex.TryGetValue(filter.Field, out var matches))
+            var existingChild = node.GetChild(propertyName);
+            if (existingChild != null)
             {
-                count += matches.Count;
+                return existingChild;
+            }
+            else
+            {
+                var newNode = new Node(propertyName);
+                node.AddChild(newNode);
+                return newNode;
             }
         }
-        return count;
     }
 
-    private HashSet<T> GetEntitiesFromFilter(SearchFilter filter)
+    private void IndexArray(JsonElement jsonElement, Node node, T obj)
     {
-        HashSet<T> currentEntities = GetHashSet();
-        foreach (var value in filter.Values)
+        foreach (JsonElement item in jsonElement.EnumerateArray())
         {
-            if (_index.TryGetValue(value, out var pathIndex) && pathIndex.TryGetValue(filter.Field, out var matches))
+            Index(item, node, obj);
+        }
+    }
+    #endregion
+
+    #region Searching
+    public IEnumerable<T> Search(List<ComplexSearch> complexSearches)
+    {
+        var results = new List<int>();
+        foreach (var complexSearch in complexSearches)
+        {
+            var searchResults = Search(complexSearch);
+            if (searchResults != null)
             {
-                currentEntities.UnionWith(matches);
+                results.AddRange(searchResults);
             }
         }
 
-        return currentEntities;
+        var distinctResults = results.Distinct();
+        return distinctResults.Select(idx => _entities[idx]); ;
     }
 
-    private readonly ConcurrentStack<HashSet<T>> _hashSetPool = new ConcurrentStack<HashSet<T>>();
-    private HashSet<T> GetHashSet()
+    private IEnumerable<int> Search(ComplexSearch complexSearch)
     {
-        if (_hashSetPool.TryPop(out var hashSet))
+        IEnumerable<int> results = null;
+
+        foreach (var searchFilter in complexSearch.OneOf ?? Enumerable.Empty<SearchFilter>())
         {
-            hashSet.Clear();
-            return hashSet;
+            var matches = GetFromFilter(searchFilter);
+            if (matches.Count() == 0)
+            {
+                continue;
+            }
+
+            if (results == null)
+            {
+                results = matches;
+                continue;
+            }
+
+            results = results.Intersect(matches);
         }
-        return new HashSet<T>(new IdEqualityComparer<T>());
+
+        foreach (var searchFilter in complexSearch.NotOneOf ?? Enumerable.Empty<SearchFilter>())
+        {
+            var matches = GetFromFilter(searchFilter);
+            if (matches.Count() == 0)
+            {
+                continue;
+            }
+
+            results.Except(matches);
+        }
+
+        return results;
     }
 
-    private void ReturnHashSet(HashSet<T> hashSet)
+    private IEnumerable<int> GetFromFilter(SearchFilter filter)
     {
-        _hashSetPool.Push(hashSet);
-    }
+        var delimitedPath = filter.Field.Split('.');
+        var currentNode = _index;
 
-    public Dictionary<string, Dictionary<string, HashSet<T>>> GetIndex()
+        for (var i = 0; i < delimitedPath.Length; i++)
+        {
+            var child = currentNode.GetChild(delimitedPath[i]);
+            if (child == null)
+            {
+                return new List<int>();
+            }
+
+            currentNode = child;
+        }
+
+        var matches = new List<int>();
+
+        foreach (var leafNode in currentNode.Leaves)
+        {
+            foreach (var value in filter.Values)
+            {
+                if (leafNode.Value.Equals(value))
+                {
+                    matches.AddRange(leafNode.Matches);
+                }
+            }
+        }
+
+        return matches.Distinct();
+    }
+    #endregion
+
+    public Node GetIndex()
     {
         return _index;
     }
-    #endregion
+
+    public T GetEntity(int index)
+    {
+        if (index >= _entities.Count)
+        {
+            return default;
+        }
+
+        if (index == -1)
+        {
+            return default;
+        }
+
+        return _entities[index];
+    }
+
 }
 
-public class IdEqualityComparer<T> : IEqualityComparer<T> where T : IBaseEntity
+public interface IIndexer<T> : IDisposable where T : IBaseEntity
 {
-    public bool Equals(T x, T y)
-    {
-        if (ReferenceEquals(x, y))
-        {
-            return true;
-        }
+    void Index(T obj, Node node);
+    void Index(List<T> entities, Node node);
+    void Index(JsonElement jsonElement, Node node, T obj);
+    IEnumerable<T> Search(List<ComplexSearch> complexSearches);
 
-        if (x is null || y is null)
-        {
-            return false;
-        }
-
-        return x.Id == y.Id;
-    }
-
-    public int GetHashCode(T obj)
-    {
-        return obj.Id?.GetHashCode() ?? obj.GetHashCode();
-    }
-}
-
-public class NestedEqualityComparer : IEqualityComparer<Nested>
-{
-    public bool Equals(Nested x, Nested y)
-    {
-        if (x.Count != y.Count)
-        {
-            return false;
-        }
-
-        foreach (var key in x.Keys)
-        {
-            if (!y.TryGetValue(key, out var value) || !value.Equals(x[key]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public int GetHashCode(Nested obj)
-    {
-        unchecked
-        {
-            int hash = 17;
-            foreach (var pair in obj)
-            {
-                hash = hash * 23 + pair.Key.GetHashCode();
-                hash = hash * 23 + (pair.Value?.GetHashCode() ?? 0);
-            }
-            return hash;
-        }
-    }
+    T GetEntity(int index);
+    Node GetIndex();
 }

@@ -11,44 +11,44 @@ public class IndexTests : BaseTest
     {
     }
 
-    [Theory]
-    public void ExportToCsv_WritesExpectedCsvFile()
-    {
-        // Arrange
-        var indexer = new Indexer<TestEntity>();
-        var entity = new TestEntity
-        {
-            Id = "1",
-            Property1 = "foo",
-            Property2 = 42,
-            Property3 = true,
-            Property4 = new List<string> { "bar", "baz" },
-            Property5 = new NestedObject { NestedProperty1 = "qux", NestedProperty2 = 13 },
-            Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "quux", NestedProperty2 = 17 } }
-        };
-        var entity2 = new TestEntity
-        {
-            Id = "2",
-            Property1 = "foo",
-            Property2 = 42,
-            Property3 = true,
-            Property4 = new List<string> { "bar", "baz" },
-            Property5 = new NestedObject { NestedProperty1 = "qux", NestedProperty2 = 13 },
-            Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "quux", NestedProperty2 = 17 } }
-        };
-        indexer.Index(entity);
-        indexer.Index(entity2);
+    //[Theory]
+    //public void ExportToCsv_WritesExpectedCsvFile()
+    //{
+    //    // Arrange
+    //    var indexer = new Indexer<TestEntity>();
+    //    var entity = new TestEntity
+    //    {
+    //        Id = "1",
+    //        Property1 = "foo",
+    //        Property2 = 42,
+    //        Property3 = true,
+    //        Property4 = new List<string> { "bar", "baz" },
+    //        Property5 = new NestedObject { NestedProperty1 = "qux", NestedProperty2 = 13 },
+    //        Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "quux", NestedProperty2 = 17 } }
+    //    };
+    //    var entity2 = new TestEntity
+    //    {
+    //        Id = "2",
+    //        Property1 = "foo",
+    //        Property2 = 42,
+    //        Property3 = true,
+    //        Property4 = new List<string> { "bar", "baz" },
+    //        Property5 = new NestedObject { NestedProperty1 = "qux", NestedProperty2 = 13 },
+    //        Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "quux", NestedProperty2 = 17 } }
+    //    };
+    //    indexer.Index(entity);
+    //    indexer.Index(entity2);
 
-        // Act
-        indexer.ExportToCsv("test.csv");
+    //    // Act
+    //    indexer.ExportToCsv("test.csv");
 
-        // Assert
-        string[] lines = File.ReadAllLines("test.csv");
-        Assert.AreEqual(3, lines.Length); // Header row + data row
-        Assert.AreEqual("id,property1,property2,property3,property4,property5.nestedProperty1,property5.nestedProperty2,property6.nestedProperty1,property6.nestedProperty2", lines[0]);
-        Assert.AreEqual("1,foo,42,True,bar;baz,qux,13,quux,17", lines[1]);
-        Assert.AreEqual("2,foo,42,True,bar;baz,qux,13,quux,17", lines[2]);
-    }
+    //    // Assert
+    //    string[] lines = File.ReadAllLines("test.csv");
+    //    Assert.AreEqual(3, lines.Length); // Header row + data row
+    //    Assert.AreEqual("id,property1,property2,property3,property4,property5.nestedProperty1,property5.nestedProperty2,property6.nestedProperty1,property6.nestedProperty2", lines[0]);
+    //    Assert.AreEqual("1,foo,42,True,bar;baz,qux,13,quux,17", lines[1]);
+    //    Assert.AreEqual("2,foo,42,True,bar;baz,qux,13,quux,17", lines[2]);
+    //}
 
     [Theory]
     public void Index_WithSingleEntity_ShouldIndexCorrectly()

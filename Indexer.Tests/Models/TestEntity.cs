@@ -1,6 +1,6 @@
 ﻿using Indexer.Models;
-
 namespace Indexer.Tests.Models;
+
 public class NestedObject
 {
     public string NestedProperty1 { get; set; }
