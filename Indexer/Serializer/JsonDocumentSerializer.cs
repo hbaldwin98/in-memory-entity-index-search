@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Indexer;
 
-public class JsonDocumentSerializer<T> : IIndexSerializer<T>, IDisposable where T : IBaseEntity
+public class JsonDocumentSerializer : IIndexSerializer, IDisposable
 {
     private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
@@ -21,7 +21,7 @@ public class JsonDocumentSerializer<T> : IIndexSerializer<T>, IDisposable where 
         _jsonWriter = new Utf8JsonWriter(_bufferWriter);
     }
 
-    public ReadOnlyMemory<byte> SerializeToMemory(T obj)
+    public ReadOnlyMemory<byte> SerializeToMemory(object obj)
     {
         _bufferWriter.Clear();
         _jsonWriter.Reset(_bufferWriter);
@@ -35,7 +35,7 @@ public class JsonDocumentSerializer<T> : IIndexSerializer<T>, IDisposable where 
         _jsonWriter?.Dispose();
     }
 
-    public JsonDocument SerializeToDocument(T obj)
+    public JsonDocument SerializeToDocument(object obj)
     {
         return JsonDocument.Parse(SerializeToMemory(obj));
     }

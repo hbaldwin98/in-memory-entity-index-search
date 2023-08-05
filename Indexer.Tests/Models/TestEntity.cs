@@ -7,7 +7,7 @@ public class NestedObject
     public int NestedProperty2 { get; set; }
 }
 
-public class TestEntity : BaseEntity
+public class TestEntity : IBaseEntity
 {
     public string Property1 { get; set; }
     public int Property2 { get; set; }
@@ -15,4 +15,5 @@ public class TestEntity : BaseEntity
     public List<string> Property4 { get; set; }
     public NestedObject Property5 { get; set; }
     public List<NestedObject> Property6 { get; set; }
+    public string Id { get; set; }
 }

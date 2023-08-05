@@ -3,8 +3,8 @@ using System.Text.Json;
 
 namespace Indexer.Serializer;
 
-public interface IIndexSerializer<T> : IDisposable where T : IBaseEntity
+public interface IIndexSerializer : IDisposable
 {
-    ReadOnlyMemory<byte> SerializeToMemory(T obj);
-    JsonDocument SerializeToDocument(T obj);
+    ReadOnlyMemory<byte> SerializeToMemory(object obj);
+    JsonDocument SerializeToDocument(object obj);
 }

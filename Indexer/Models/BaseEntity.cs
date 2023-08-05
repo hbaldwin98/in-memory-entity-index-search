@@ -4,6 +4,7 @@ public interface IBaseEntity
 {
     string Id { get; set; }
 }
+
 public class BaseEntity : IBaseEntity
 {
     public string Id { get; set; }

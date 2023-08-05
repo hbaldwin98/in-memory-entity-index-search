@@ -3,12 +3,13 @@ using BenchmarkDotNet.Running;
 using Bogus;
 using Indexer;
 using Indexer.Models;
+using Database = Indexer.Database;
 
 public class Program
 {
     public static void Main(string[] args)
     {
-        //BenchmarkRunner.Run<IndexerBenchmark>();
+        BenchmarkRunner.Run<IndexerBenchmark>();
     }
 }
 
@@ -55,8 +56,7 @@ public class IndexerBenchmark
     [Benchmark]
     public void IndexEntities()
     {
-        var indexer = new Indexer<BaseEntity>();
-
-        indexer.Index(_entities);
+        var database = new Database();
+        database.Index(_entities);
     }
 }

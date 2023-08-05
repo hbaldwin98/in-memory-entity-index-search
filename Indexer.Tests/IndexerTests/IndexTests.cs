@@ -1,4 +1,5 @@
 ﻿using Indexer.Extensions;
+using Indexer.Models;
 using Indexer.Tests.Models;
 using NUnit.Framework;
 
@@ -9,6 +10,31 @@ public class IndexTests : BaseTest
 {
     public IndexTests() : base()
     {
+    }
+
+    [Test]
+    public void Database_Test()
+    {
+        var database = new Database();
+
+        database.Index(new TestEntity[] { new TestEntity { Id = "1" }, new TestEntity { Id = "2" } });
+        database.Index(new BaseEntity[]
+        {
+            new BaseEntity
+            {
+                Id = "3"
+            }
+        });
+
+        var entity = database.Get<TestEntity>(1);
+        var entity2 = database.Get<BaseEntity>(0);
+
+        Assert.NotNull(entity);
+        Assert.NotNull(entity2);
+        Assert.AreEqual(entity.Id, "2");
+        Assert.AreEqual(entity2.Id, "3");
+        Assert.True(entity.GetType() == typeof(TestEntity));
+        Assert.True(entity2.GetType() == typeof(BaseEntity));
     }
 
     //[Theory]
@@ -54,7 +80,7 @@ public class IndexTests : BaseTest
     public void Index_WithSingleEntity_ShouldIndexCorrectly()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var entity = new TestEntity
         {
             Id = "1",
@@ -85,7 +111,7 @@ public class IndexTests : BaseTest
     public void Index_WithMultipleEntities_ShouldIndexCorrectly()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var entities = new List<TestEntity>
     {
         new TestEntity { Id = "1", Property1 = "foo" },
@@ -106,7 +132,7 @@ public class IndexTests : BaseTest
     public void Index_WithNestedObjects_ShouldIndexCorrectly()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var entity = new TestEntity
         {
             Id = "1",
@@ -123,12 +149,12 @@ public class IndexTests : BaseTest
         Assert.AreEqual(1, indexer.GetMatches("bar", "property6.nestedProperty1").Count());
         Assert.AreEqual(1, indexer.GetMatches("13", "property6.nestedProperty2").Count());
     }
-    
+
     [Theory]
     public void GetMatches_WithExistingValue_ShouldReturnMatchingObjects()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var entity1 = new TestEntity { Id = "1", Property1 = "foo", Property2 = 42 };
         var entity2 = new TestEntity { Id = "2", Property1 = "bar", Property2 = 42 };
         indexer.Index(new List<TestEntity> { entity1, entity2 });
@@ -146,7 +172,7 @@ public class IndexTests : BaseTest
     public void GetMatches_WithNonExistingValue_ShouldReturnEmptyEnumerable()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var entity1 = new TestEntity { Id = "1", Property1 = "foo", Property2 = 42 };
         indexer.Index(entity1);
 
@@ -161,7 +187,7 @@ public class IndexTests : BaseTest
     public void GetMatches_WithNestedObjects_ShouldReturnMatchingObjects()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var entity1 = new TestEntity
         {
             Id = "1",
@@ -193,7 +219,7 @@ public class IndexTests : BaseTest
     public void GetMatches_WithInvalidPath_ShouldReturnEmptyEnumerable()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var entity1 = new TestEntity { Id = "1", Property1 = "foo" };
         indexer.Index(entity1);
 
@@ -208,7 +234,7 @@ public class IndexTests : BaseTest
     public void Indexer_CanDispose()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
 
         // Act
         indexer.Dispose();

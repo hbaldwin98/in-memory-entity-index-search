@@ -1,12 +1,10 @@
-﻿using CsvHelper;
-using Indexer.Models;
-using System.Globalization;
+﻿using Indexer.Models;
 
 namespace Indexer.Extensions;
 
 public static class IndexerExtensions
 {
-    public static IEnumerable<T> GetMatches<T>(this IIndexer<T> indexer, string value, string field)
+    public static IEnumerable<T> GetMatches<T>(this IPageIndex<T> indexer, string value, string field)
         where T : IBaseEntity
     {
         if (indexer == null)
@@ -43,7 +41,7 @@ public static class IndexerExtensions
 
         if (currentNode.Leaves.TryGetValue(value, out var leafNode))
         {
-            matches.AddRange(leafNode.Matches.Select(m => indexer.GetEntity(m)));
+            matches.AddRange(leafNode.Matches.Select(m => (T)indexer.GetEntity(m)));
         }
 
         return matches;

@@ -14,7 +14,7 @@ public class SearchTests : BaseTest
     [Theory]
     public void IndexingAndSearchingSingleObject()
     {
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
 
         var testObj = new TestEntity
         {
@@ -44,7 +44,7 @@ public class SearchTests : BaseTest
     [Theory]
     public void IndexingAndSearchingMultipleObjects()
     {
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
 
         var testObj1 = new TestEntity
         {
@@ -86,7 +86,7 @@ public class SearchTests : BaseTest
     [Theory]
     public void SearchWithEmptyFiltersShouldReturnEmpty()
     {
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
 
         var testObj1 = new TestEntity
         {
@@ -112,7 +112,7 @@ public class SearchTests : BaseTest
     [Theory]
     public void IndexingAndSearchingSingleComplexObject()
     {
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
 
         var testObj = new TestEntity
         {
@@ -151,7 +151,7 @@ public class SearchTests : BaseTest
     public void Indexer_IndexesObject()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject = new TestEntity
         {
             Property1 = "Test",
@@ -175,7 +175,7 @@ public class SearchTests : BaseTest
     public void Indexer_IndexesNestedObject()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject = new TestEntity
         {
             Property1 = "Test",
@@ -195,7 +195,7 @@ public class SearchTests : BaseTest
     public void Indexer_IndexesNestedObjectList()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject = new TestEntity
         {
             Property1 = "Test",
@@ -215,7 +215,7 @@ public class SearchTests : BaseTest
     public void Indexer_SearchesForMultipleValues()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject1 = new TestEntity { Property1 = "Test1" };
         var testObject2 = new TestEntity { Property1 = "Test2" };
         indexer.Index(new List<TestEntity> { testObject1, testObject2 });
@@ -233,7 +233,7 @@ public class SearchTests : BaseTest
     public void Indexer_NestedPrefix_TwoComplexOneEntity()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject1 = new TestEntity { Property1 = "Test1", Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "Nested1", NestedProperty2 = 12344 } } };
         var testObject2 = new TestEntity { Property1 = "Test2", Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "Nested1", NestedProperty2 = 12345 } } };
         indexer.Index(new List<TestEntity> { testObject1, testObject2 });
@@ -270,7 +270,7 @@ public class SearchTests : BaseTest
     public void Indexer_SearchesForMultipleFields()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject = new TestEntity
         {
             Property1 = "Test",
@@ -291,7 +291,7 @@ public class SearchTests : BaseTest
     public void Indexer_SearchesForNotOneOf()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject1 = new TestEntity { Property1 = "Test1" };
         var testObject2 = new TestEntity { Property1 = "Test2" };
         indexer.Index(new List<TestEntity> { testObject1, testObject2 });
@@ -309,7 +309,7 @@ public class SearchTests : BaseTest
     public void Indexer_SearchesForMultipleFieldsAndValues()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject1 = new TestEntity
         {
             Property1 = "Test1",
@@ -344,7 +344,7 @@ public class SearchTests : BaseTest
     public void Indexer_SearchesWithComplexSearch()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject1 = new TestEntity
         {
             Property1 = "Test1",
@@ -392,7 +392,7 @@ public class SearchTests : BaseTest
     public void Indexer_SearchesForMultipleMatchesWithComplexSearch()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject1 = new TestEntity { Id = "1", Property1 = "Test1", Property2 = 1, Property3 = true };
         var testObject2 = new TestEntity { Id = "2", Property1 = "Test2", Property2 = 2, Property3 = false };
         var testObject3 = new TestEntity { Id = "3", Property1 = "Test3", Property2 = 3, Property3 = true };
@@ -424,7 +424,7 @@ public class SearchTests : BaseTest
     public void Indexer_SearchesForMultipleComplexFiltersWithOR()
     {
         // Arrange
-        var indexer = new Indexer<TestEntity>();
+        var indexer = new PageIndex<TestEntity>();
         var testObject1 = new TestEntity
         {
             Property1 = "Test1",
