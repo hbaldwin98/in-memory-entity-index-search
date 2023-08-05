@@ -4,9 +4,9 @@ public class Node
 {
     public string PathSegment;
     public Dictionary<string, Node> Children;
-    public List<LeafNode> Leaves;
+    public Dictionary<string, LeafNode> Leaves;
 
-    public Node() {}
+    public Node() { }
 
     public Node(string path)
     {
@@ -37,20 +37,16 @@ public class Node
     {
         if (Leaves == null)
         {
-            Leaves = new List<LeafNode>();
+            Leaves = new Dictionary<string, LeafNode>();
         }
 
-        var leafIdx = Leaves.FindIndex(l => l.Value == value);
-
-        if (leafIdx == -1)
+        if (!Leaves.TryGetValue(value, out var leaf))
         {
-            var matches = new HashSet<int> { matchIdx };
-            Leaves.Add(new LeafNode(value, matches));
+            Leaves[value] = new LeafNode(value, new HashSet<int> { matchIdx });
         }
         else
         {
-            Leaves[leafIdx].Matches.Add(matchIdx);
+            leaf.Matches.Add(matchIdx);
         }
     }
-
 }

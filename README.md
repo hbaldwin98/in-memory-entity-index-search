@@ -1,6 +1,6 @@
 ﻿# in-memory-entity-index-search
 
-A basic in-memory implementation to index and search upon classes - "entities." Entities are converted into JSONDocument and inserted into a dictionary value-field-entity. Entities are assumed to have a unique Id field. This is very memory heavy and currently in a bad state due to a changing requirement. I want to recreate it using a Trie, but need to garner the desire first...
+A basic in-memory implementation to index and search upon classes - "entities." Entities are converted into JSONDocument and inserted into a node based tree structure associated by each dot-delimited parameter. 
 
 ```
 public class TestObject
@@ -11,20 +11,26 @@ public class TestObject
 }
 ```
 
-This can be indexed into a format similar to:
+This can be indexed into a format similar to the below where each entity's index is store in a hashmap for quick lookup:
 
 ```
 {
-    "12345": {
-        "id": [Entity]
-    },
-    "John": {
-        "name": [Entity]
-    },
-    "18": {
-        "age": [Entity]
+    "pathSegment": "path1"
+    "children": {
+        "path2": {
+            "pathSegment": "path2",
+            "children": null,
+            "leaves": {
+                "leafValue": {
+                    "value": "leafValue",
+                    "matches": {
+                        [entityIndex]
+                    }
+                }
+            }
+        }
     }
 }
 ```
 
-This has support for any number of nested objects and will store those values in a "dot-notation" - firstlevel.nested. 
+This has support for any number of nested objects and can be accessed in a "dot-notation" - firstlevel.nested. 

@@ -5,6 +5,7 @@ WORKDIR /app
 # Copy csproj files and restore
 COPY ./Indexer/Indexer.csproj ./Indexer/Indexer.csproj
 COPY ./Indexer.Tests/Indexer.Tests.csproj ./Indexer.Tests/Indexer.Tests.csproj
+COPY ./Indexer.Performance/Indexer.Performance.csproj ./Indexer.Performance/Indexer.Performance.csproj
 COPY ./Indexer.sln ./Indexer.sln
 RUN dotnet restore Indexer.sln
 

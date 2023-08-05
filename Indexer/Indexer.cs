@@ -75,18 +75,17 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
             case JsonValueKind.Number:
             case JsonValueKind.False:
             case JsonValueKind.True:
-                if (!_entityIndexMap.TryGetValue(obj, out var existingIdx))
+                int idx;
+                if (!_entityIndexMap.TryGetValue(obj, out idx))
                 {
                     _entities.Add(obj);
+                    idx = _entities.Count - 1;
 
-                    node.AddMatch(jsonElement.ToString(), _entities.Count - 1);
-                    _entityIndexMap[obj] = _entities.Count - 1;
-                }
-                else
-                {
-                    node.AddMatch(jsonElement.ToString(), existingIdx);
+                    node.AddMatch(jsonElement.ToString(), idx);
+                    _entityIndexMap[obj] = idx;
                 }
 
+                node.AddMatch(jsonElement.ToString(), idx);
                 break;
         }
     }
@@ -212,14 +211,11 @@ public class Indexer<T> : IIndexer<T> where T : IBaseEntity
 
         var matches = new List<int>();
 
-        foreach (var leafNode in currentNode.Leaves)
+        foreach (var value in filter.Values)
         {
-            foreach (var value in filter.Values)
+            if (currentNode.Leaves.TryGetValue(value, out var leafNode))
             {
-                if (leafNode.Value.Equals(value))
-                {
-                    matches.AddRange(leafNode.Matches);
-                }
+                matches.AddRange(leafNode.Matches);
             }
         }
 

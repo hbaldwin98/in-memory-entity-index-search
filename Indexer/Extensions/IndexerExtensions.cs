@@ -41,18 +41,15 @@ public static class IndexerExtensions
 
         var matches = new List<T>();
 
-        foreach (var leafNode in currentNode.Leaves)
+        if (currentNode.Leaves.TryGetValue(value, out var leafNode))
         {
-            if (leafNode.Value.Equals(value))
-            {
-                matches.AddRange(leafNode.Matches.Select(m => indexer.GetEntity(m)));
-            }
+            matches.AddRange(leafNode.Matches.Select(m => indexer.GetEntity(m)));
         }
 
         return matches;
     }
 
-    
+
     //public static void ExportToCsv<T>(this IIndexer<T> indexer, string filePath) where T : IBaseEntity
     //{
     //    var index = indexer.GetIndex();

@@ -6,16 +6,16 @@ using Indexer.Models;
 
 public class Program
 {
-    static void Main(string[] args)
+    public static void Main(string[] args)
     {
-        BenchmarkRunner.Run<IndexerBenchmark>();
+        //BenchmarkRunner.Run<IndexerBenchmark>();
     }
-
 }
+
 [MemoryDiagnoser]
 public class IndexerBenchmark
 {
-    [Params(100, 1000, 10000, 100000)]
+    [Params(100, 1000, 10000)]
     public int NumberOfEntities;
 
     private List<BaseEntity> _entities;
