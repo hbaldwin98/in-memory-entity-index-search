@@ -9,12 +9,13 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        BenchmarkRunner.Run<IndexerBenchmark>();
+        //BenchmarkRunner.Run<IndexingBenchmark>();
+        BenchmarkRunner.Run<SearchingBenchmark>();
     }
 }
 
 [MemoryDiagnoser]
-public class IndexerBenchmark
+public class IndexingBenchmark
 {
     [Params(100, 1000, 10000)]
     public int NumberOfEntities;
@@ -58,5 +59,66 @@ public class IndexerBenchmark
     {
         var database = new Database();
         database.Index(_entities);
+    }
+}
+
+[MemoryDiagnoser]
+public class SearchingBenchmark
+{
+    [Params(100, 1000, 10000)]
+    public int NumberOfEntities;
+
+    private Database _database;
+    private Faker faker;
+
+
+    [GlobalSetup]
+    public void GlobalSetup()
+    {
+        var entities = new List<BaseEntity>();
+        faker = new Faker();
+
+        for (var i = 0; i < NumberOfEntities; i++)
+        {
+            entities.Add(new BaseEntity
+            {
+                Attributes = new Dictionary<string, string>
+                {
+                    { faker.Music.Random.String(), faker.Music.Random.String() },
+                    { faker.Music.Random.String(), faker.Music.Random.String() },
+                    { faker.Music.Random.String(), faker.Music.Random.String() },
+                    { faker.Music.Random.String(), faker.Music.Random.String() }
+                },
+                Meta = new Dictionary<string, List<Meta>>
+                {
+                    { faker.Music.Random.String(), new List<Meta> { new Meta { { faker.Rant.Random.String(), faker.Rant.Random.String() } } } },
+                    { faker.Music.Random.String(), new List<Meta> { new Meta { { faker.Rant.Random.String(), faker.Rant.Random.String() } } } },
+                    { faker.Music.Random.String(), new List<Meta> { new Meta { { faker.Rant.Random.String(), faker.Rant.Random.String() } } } },
+                    { faker.Music.Random.String(), new List<Meta> { new Meta { { faker.Rant.Random.String(), faker.Rant.Random.String() } } } }
+                }
+            });
+        }
+
+        _database = new Database();
+        _database.Index(entities);
+    }
+
+    [Benchmark]
+    public void Search()
+    {
+        var search = new ComplexSearch
+        {
+            OneOf = new List<SearchFilter>
+            {
+                new SearchFilter($"attributes.{faker.Music.Random.String()}", new List<string> { faker.Music.Random.String() }),
+                new SearchFilter($"meta.{faker.Music.Random.String()}", new List<string> { faker.Music.Random.String() })
+            },
+            NotOneOf = new List<SearchFilter>
+            {
+               new SearchFilter("foo", new List<string> { "bar" })
+            }
+        };
+
+        _database.Search<BaseEntity>(new List<ComplexSearch> { search });
     }
 }

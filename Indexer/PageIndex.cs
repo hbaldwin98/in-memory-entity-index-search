@@ -1,5 +1,6 @@
 ﻿using Indexer.Models;
 using Indexer.Serializer;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace Indexer;
@@ -46,19 +47,33 @@ public class PageIndex<T> : IPageIndex<T>
     #endregion
 
     #region Indexing
-    public void Index(object obj, Node node = null)
-    {
-        using (var document = _serializer.SerializeToDocument(obj))
-        {
-            Index(document.RootElement, node, obj);
-        }
-    }
 
-    public void Index(IEnumerable<object> entities, Node node = null)
+    public void Index(IEnumerable<object> entities)
     {
         foreach (var entity in entities)
         {
-            Index(entity, node);
+            Index(entity);
+        }
+    }
+
+    public async Task IndexAsync(IEnumerable<object> entities)
+    {
+        foreach (var entity in entities)
+        {
+            await IndexAsync(entity);
+        }
+    }
+
+    public async Task IndexAsync(object obj)
+    {
+        await Task.Run(() => Index(obj));
+    }
+
+    public void Index(object obj)
+    {
+        using (var document = _serializer.SerializeToDocument(obj))
+        {
+            Index(document.RootElement, null, obj);
         }
     }
 
@@ -146,7 +161,7 @@ public class PageIndex<T> : IPageIndex<T>
     #endregion
 
     #region Searching
-    public IEnumerable<object> Search(List<ComplexSearch> complexSearches)
+    public IEnumerable<object> Search(IEnumerable<ComplexSearch> complexSearches)
     {
         var results = new List<int>();
         foreach (var complexSearch in complexSearches)
@@ -158,9 +173,14 @@ public class PageIndex<T> : IPageIndex<T>
             }
         }
 
-        var distinctResults = results.Distinct();
-        return distinctResults.Select(idx => _entities[idx]); ;
+        var distinctResults = results.Distinct().Select(idx => _entities[idx]);
+        return distinctResults;
     }
+    public async Task<IEnumerable<object>> SearchAsync(IEnumerable<ComplexSearch> complexSearches)
+    {
+        return await Task.FromResult(Search(complexSearches));
+    }
+
 
     private IEnumerable<int> Search(ComplexSearch complexSearch)
     {
@@ -251,10 +271,13 @@ public class PageIndex<T> : IPageIndex<T>
 
 public interface IPageIndex<T>
 {
-    void Index(object obj, Node node);
-    void Index(IEnumerable<object> entities, Node node);
+    void Index(object obj);
+    Task IndexAsync(object obj);
+    void Index(IEnumerable<object> entities);
+    Task IndexAsync(IEnumerable<object> entities);
     void Index(JsonElement jsonElement, Node node, object obj);
-    IEnumerable<object> Search(List<ComplexSearch> complexSearches);
+    IEnumerable<object> Search(IEnumerable<ComplexSearch> complexSearches);
+    Task<IEnumerable<object>> SearchAsync(IEnumerable<ComplexSearch> complexSearches);
 
     object GetEntity(int index);
     Node GetIndex();

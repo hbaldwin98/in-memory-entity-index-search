@@ -26,55 +26,47 @@ public class IndexTests : BaseTest
             }
         });
 
-        var entity = database.Get<TestEntity>(1);
-        var entity2 = database.Get<BaseEntity>(0);
+        var result = database.Get<TestEntity>(1);
+        var result2 = database.Get<BaseEntity>(0);
 
-        Assert.NotNull(entity);
-        Assert.NotNull(entity2);
-        Assert.AreEqual(entity.Id, "2");
-        Assert.AreEqual(entity2.Id, "3");
-        Assert.True(entity.GetType() == typeof(TestEntity));
-        Assert.True(entity2.GetType() == typeof(BaseEntity));
+        Assert.AreEqual(result.Status, DbStatus.SUCCESS);
+        Assert.AreEqual(result2.Status, DbStatus.SUCCESS);
+
+        Assert.NotNull(result.Result);
+        Assert.NotNull(result2.Result);
+        Assert.AreEqual(result.Result.Id, "2");
+        Assert.AreEqual(result2.Result.Id, "3");
+        Assert.True(result.Result.GetType() == typeof(TestEntity));
+        Assert.True(result2.Result.GetType() == typeof(BaseEntity));
     }
 
-    //[Theory]
-    //public void ExportToCsv_WritesExpectedCsvFile()
-    //{
-    //    // Arrange
-    //    var indexer = new Indexer<TestEntity>();
-    //    var entity = new TestEntity
-    //    {
-    //        Id = "1",
-    //        Property1 = "foo",
-    //        Property2 = 42,
-    //        Property3 = true,
-    //        Property4 = new List<string> { "bar", "baz" },
-    //        Property5 = new NestedObject { NestedProperty1 = "qux", NestedProperty2 = 13 },
-    //        Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "quux", NestedProperty2 = 17 } }
-    //    };
-    //    var entity2 = new TestEntity
-    //    {
-    //        Id = "2",
-    //        Property1 = "foo",
-    //        Property2 = 42,
-    //        Property3 = true,
-    //        Property4 = new List<string> { "bar", "baz" },
-    //        Property5 = new NestedObject { NestedProperty1 = "qux", NestedProperty2 = 13 },
-    //        Property6 = new List<NestedObject> { new NestedObject { NestedProperty1 = "quux", NestedProperty2 = 17 } }
-    //    };
-    //    indexer.Index(entity);
-    //    indexer.Index(entity2);
+    [Test]
+    public async Task Async_Database_Test()
+    {
+        var database = new Database();
 
-    //    // Act
-    //    indexer.ExportToCsv("test.csv");
+        await database.IndexAsync(new TestEntity[] { new TestEntity { Id = "1" }, new TestEntity { Id = "2" } });
+        await database.IndexAsync(new BaseEntity[]
+        {
+            new BaseEntity
+            {
+                Id = "3"
+            }
+        });
 
-    //    // Assert
-    //    string[] lines = File.ReadAllLines("test.csv");
-    //    Assert.AreEqual(3, lines.Length); // Header row + data row
-    //    Assert.AreEqual("id,property1,property2,property3,property4,property5.nestedProperty1,property5.nestedProperty2,property6.nestedProperty1,property6.nestedProperty2", lines[0]);
-    //    Assert.AreEqual("1,foo,42,True,bar;baz,qux,13,quux,17", lines[1]);
-    //    Assert.AreEqual("2,foo,42,True,bar;baz,qux,13,quux,17", lines[2]);
-    //}
+        var result = await database.GetAsync<TestEntity>(1);
+        var result2 = await database.GetAsync<BaseEntity>(0);
+
+        Assert.AreEqual(result.Status, DbStatus.SUCCESS);
+        Assert.AreEqual(result2.Status, DbStatus.SUCCESS);
+
+        Assert.NotNull(result.Result);
+        Assert.NotNull(result2.Result);
+        Assert.AreEqual(result.Result.Id, "2");
+        Assert.AreEqual(result2.Result.Id, "3");
+        Assert.True(result.Result.GetType() == typeof(TestEntity));
+        Assert.True(result2.Result.GetType() == typeof(BaseEntity));
+    }
 
     [Theory]
     public void Index_WithSingleEntity_ShouldIndexCorrectly()
